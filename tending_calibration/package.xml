@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>tending_calibration</name>
+  <version>0.1.0</version>
+  <description>Tending 핸드아이(eye-in-hand) 캘리브레이션 · TCP 설정. [P1 스캐폴드 — 카메라 부착 후 구현]</description>
+
+  <maintainer email="kmingi98@gmail.com">mk</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>tending_bringup</name>
+  <version>0.1.0</version>
+  <description>
+    카메라·링라이트가 부착된 TM5 셀 브링업 (예정). 로봇 자체 브링업/MoveIt/RViz 는
+    tmr_ros2 공식 런치를 그대로 사용하고, 본 패키지는 tmr_ros2 의 tm5-900 URDF/xacro 에
+    카메라+링라이트를 추가한 확장 description(tending_description)을 얹어 bringup 하는
+    런치를 제공할 예정이다. [현재는 골격만 유지 — 카메라 부착 후 채움]
+  </description>
+
+  <maintainer email="kmingi98@gmail.com">mk</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 향후 bringup 런치 런타임 의존 (카메라 부착 후) -->
+  <exec_depend>tm_driver</exec_depend>
+  <exec_depend>tm_description</exec_depend>
+  <exec_depend>tending_description</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

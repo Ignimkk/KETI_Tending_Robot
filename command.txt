@@ -1,0 +1,129 @@
+========================================================================
+ Tending — 엔드밀 로봇 비전 검사 시스템 : 실행 명령어 모음
+ (ROS 2 Humble / 작업공간: ~/dev_ws/prject/NCC/Tending_ws)
+
+ 원칙: tmr_ros2 = 핵심(로봇 bringup / MoveIt2 / 실물 연동은 tmr_ros2 공식 런치 사용).
+       tending_* = 보충(검사 제어·인터페이스·카메라·데이터). 로봇 bringup 을 재구현하지 않음.
+
+ 패키지 역할:
+   tending_control   = 검사 제어(inspection_manager, scenario1_inspect, ee_pose_query)
+                       + 검사 launch/config
+   tending_moveit    = 시나리오1 MoveIt(충돌회피) 제어 (tmr_ros2 move_group 에 연결)
+   tending_camera    = 카메라(stub) capture_image
+   tending_data      = 검사 데이터 저장(recorder)
+   tending_interfaces= msg/srv/action
+   tending_bringup   = (골격) 카메라·링라이트 부착 셀 bringup 예정
+========================================================================
+
+------------------------------------------------------------------------
+[2] 로봇 브링업 / MoveIt / RViz  ← tmr_ros2 공식 런치 사용
+------------------------------------------------------------------------
+# 드라이버만 (실물). TMflow Ethernet Slave/Listen Node 활성 + 프로젝트 실행 필요
+ros2 launch tm_driver tm_bringup.launch.py 192.168.0.10
+
+# MoveIt + RViz + 드라이버 (실물)
+ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=192.168.0.10
+
+# ★ 가상(fake) 로봇 + MoveIt + RViz — robot_ip 생략 시 tmr_ros2 공식 fake 로봇 사용
+#   (로그 "use fake robot"). set_positions/feedback/joint_states 제공, RViz 로 로봇 표시.
+ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py
+
+# 연결/상태 확인
+ros2 topic echo /feedback_states --field is_sct_connected
+ros2 topic echo /joint_states
+ros2 topic echo /tool_pose
+
+
+------------------------------------------------------------------------
+[3] EE 좌표 추적 유틸 (수동 티칭)  — base→flange 포즈 + 관절값 (TF 기반)
+    용도: MoveIt RViz 의 interactive marker 로 로봇을 끌어 옮기며 목표 좌표 채집
+------------------------------------------------------------------------
+# 터미널 A: [2] 로 로봇 bringup (RViz 의 MotionPlanning → interactive marker 로 수동 이동)
+ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py            # 가상
+# 터미널 B: 1초마다 EE pose + 관절값을 정리된 형태로 출력
+ros2 run tending_control ee_pose_query
+#   옵션: -p rate_hz:=2.0  -p once:=true  -p ee_frame:=flange  -p base_frame:=base
+#   출력: joints[rad/deg], EE pose(xyz m/rpy deg),
+#         복붙용  pose[x,y,z,rx,ry,rz](m,rad) → scenario1.yaml 의 axis_point/pose
+#                poses.<name>(joints)         → poses.yaml 의 명명 포즈
+# ※ 포즈는 TF(base→flange) 에서 읽으므로 RViz 표시와 정확히 일치(가상 로봇에서도 유효).
+#   실제 TCP(공구) 프레임이 있으면 -p ee_frame:=<tcp_frame> 로 지정.
+
+
+------------------------------------------------------------------------
+[4] 시나리오 1 검사 — (1) 룰베이스 / (3) 하이브리드
+    node: tending_control::scenario1_inspect
+------------------------------------------------------------------------
+# (오프라인) 궤도 포즈만 출력 — 로봇 불필요
+ros2 launch tending_control scenario1_inspect.launch.py control_mode:=rule   dry_run:=true
+ros2 launch tending_control scenario1_inspect.launch.py control_mode:=hybrid dry_run:=true
+
+# (실물) — 먼저 [2] 로 로봇 bringup 후
+ros2 launch tending_control scenario1_inspect.launch.py control_mode:=hybrid dry_run:=false
+
+# 노드 단독 (파라미터 직접)
+ros2 run tending_control scenario1_inspect --ros-args \
+  --params-file install/tending_control/share/tending_control/config/scenario1.yaml \
+  -p control_mode:=rule -p dry_run:=true \
+  -p axis_point:="[0.4, 0.0, 0.4]" -p axis_dir:="[0.0, 0.0, -1.0]"
+# 주요 파라미터: control_mode(rule|hybrid), dry_run, use_line, axis_point/axis_dir,
+#   inspect_distance, angle_start/angle_end/num_views, cnc_frame.*, safe_region.*
+
+
+------------------------------------------------------------------------
+[5] 시나리오 1 검사 — (2) MoveIt (충돌회피)
+    node: tending_moveit::scenario1_inspect_moveit  (tmr_ros2 move_group 에 연결)
+------------------------------------------------------------------------
+# 터미널 A: run_move_group 으로 move_group 기동
+#   실물:  robot_ip:=<IP> 지정  /  가상(fake, 실물없이 RViz 동작확인):  robot_ip 생략
+ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py            # 가상 로봇
+# ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=192.168.0.10  # 실물
+
+# 터미널 B: MoveIt 검사 노드 (run_move_group 과 동일 방식으로 description 주입)
+ros2 launch tending_moveit scenario1_moveit.launch.py
+#   → 가상 로봇에서도 계획·실행되어 RViz 에서 로봇이 궤도를 도는 것을 확인 가능
+# 계획기 변경: scenario1.yaml 의 planning_pipeline(ompl|chomp|pilz_industrial_motion_planner)
+
+
+------------------------------------------------------------------------
+[6] MVP 검사 파이프라인 (카메라 stub + 데이터 저장 + 액션)
+    launch: tending_control  /  node: inspection_manager (+camera_node, dataset_recorder)
+------------------------------------------------------------------------
+# 먼저 [2] 로 로봇(드라이버) bringup, 그 다음:
+ros2 launch tending_control mvp_inspect.launch.py            # 검사 노드들
+# (카메라 stub: use_stub:=true 기본)
+
+# 검사 실행 (액션, 다른 터미널)
+ros2 action send_goal /run_inspection tending_interfaces/action/RunInspection \
+  "{machine_id: 'mc_a', scenario: 1, angle_start: 0.0, angle_end: 6.283, num_views: 8, inspect_distance: 0.1}" \
+  --feedback
+
+# 보조
+ros2 service call /go_to_named_pose tending_interfaces/srv/GoToNamedPose "{pose_name: 'init', velocity: 0.0}"
+ros2 service call /capture_image tending_interfaces/srv/CaptureImage "{label: 'mc_a', view_index: 0}"
+ls -l /tmp/tending_dataset/mc_a/ ; cat /tmp/tending_dataset/mc_a/manifest.jsonl
+
+
+------------------------------------------------------------------------
+[7] 안전 / 상태 점검
+------------------------------------------------------------------------
+ros2 node list ; ros2 action list
+ros2 topic echo /feedback_states --field e_stop
+ros2 topic echo /feedback_states --field error_code
+ros2 service call /set_event tm_msgs/srv/SetEvent "{func: 11, arg0: 0, arg1: 0}"   # 즉시 정지
+
+
+------------------------------------------------------------------------
+[!] 실물 배포 전 필수 확인
+------------------------------------------------------------------------
+- tending_control/config/poses.yaml, scenario1.yaml 의 관절값/축좌표는 자리표시자
+  → TMflow 티칭 또는 ee_pose_query 로 실제 값 확인 후 교체.
+- 상부 CNC 척과의 충돌 여유 확인. 첫 실행은 반드시 저속으로.
+- 룰베이스(rule)는 충돌회피 없음 → 미검증 좌표는 hybrid(safe_region) 또는 MoveIt 로 먼저 확인.
+- 무하드웨어 검증은 scenario1 dry_run(포즈 미리보기)과 pose_utils gtest 로 수행.
+
+
+
+
+git clone --recurse-submodules \
+https://github.com/Ignimkk/KETI_Tending_Robot.git

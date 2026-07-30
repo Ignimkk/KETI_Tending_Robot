@@ -1,0 +1,7 @@
+# 카메라 1장 촬영 트리거 (실드라이버 또는 stub)
+string label            # 데이터셋 라벨/서브폴더
+uint32 view_index       # 뷰 인덱스
+---
+bool ok                 # 촬영/저장 성공 여부
+string image_path       # 저장된 이미지 경로
+builtin_interfaces/Time stamp   # 촬영 시각

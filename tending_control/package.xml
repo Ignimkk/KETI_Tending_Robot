@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>tending_control</name>
+  <version>0.1.0</version>
+  <description>Tending 로봇 제어: tm_driver 래핑(robot_io_bridge) + 검사 상태기계/액션(inspection_manager) + 규칙기반 모션 전략.</description>
+
+  <maintainer email="kmingi98@gmail.com">mk</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tm_msgs</depend>
+  <depend>tending_interfaces</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
+  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
+  <depend>eigen</depend>
+
+  <!-- 오케스트레이션 launch 런타임 의존 (로봇 bringup 은 tmr_ros2 공식 런치 사용) -->
+  <exec_depend>tending_camera</exec_depend>
+  <exec_depend>tending_data</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

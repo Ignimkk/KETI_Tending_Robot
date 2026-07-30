@@ -1,0 +1,6 @@
+# 명명된 안전 포즈로 이동 (home / init / approach / inspect / retreat)
+string pose_name
+float64 velocity        # 0 이면 기본값 사용 (rad/s)
+---
+bool ok
+string message

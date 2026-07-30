@@ -1,0 +1,4 @@
+[submodule "tmr_ros2"]
+	path = tmr_ros2
+	url = https://github.com/Ignimkk/tmr_ros2.git
+	branch = humble

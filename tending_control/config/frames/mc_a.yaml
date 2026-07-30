@@ -1,0 +1,25 @@
+# 기계별(machine-specific) 설정 — CNC 머신 A (mc_a)
+#
+# 3대 CNC 확장 시 이 파일을 mc_b.yaml, mc_c.yaml 로 복제하여 값만 교체한다(코드 무변경).
+# 사용자가 티칭/측정으로 제공하는 정보:
+#   - cnc_frame        : 로봇 base 기준 CNC 기준프레임 (x,y,z, roll,pitch,yaw)
+#   - endmill_axis     : 스핀들(엔드밀) 축 위치·방향
+#   - approach_dir     : 아래에서 접근하는 방향
+#   - safe_region      : 안전 작업영역 박스 (min/max)
+#   - inspect_distance : 카메라-툴 검사 거리 (m)
+#
+# ⚠️ P0(현재)에서는 inspection_manager 가 관절공간 티칭 포즈(poses.yaml)로 동작한다.
+#    본 파일의 프레임 값은 단계 5(프레임/TCP) 및 단계 14(다중 CNC) 태스크프레임 전략에서 소비된다.
+tending:
+  machine_id: "mc_a"
+  cnc_frame:
+    xyz: [0.0, 0.0, 0.9]        # placeholder
+    rpy: [0.0, 0.0, 0.0]
+  endmill_axis:
+    origin_xyz: [0.0, 0.0, 0.0] # cnc_frame 기준
+    direction: [0.0, 0.0, -1.0] # 아래로 매달림
+  approach_dir: [0.0, 0.0, 1.0] # 아래에서 위로 접근
+  safe_region:
+    min_xyz: [-0.5, -0.5, 0.0]
+    max_xyz: [0.5, 0.5, 1.2]
+  inspect_distance: 0.10        # m

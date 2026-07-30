@@ -1,0 +1,16 @@
+# 엔드밀 360° 측면 검사 실행
+string machine_id          # config/frames/<machine_id>.yaml 선택
+uint8 scenario             # 1 = 손목 직접 장착, 2 = L-브라켓
+float64 angle_start        # 검사 시작 각도 (rad)
+float64 angle_end          # 검사 종료 각도 (rad)
+uint16 num_views           # 촬영 뷰 수 (등각 분할)
+float64 inspect_distance   # 카메라-툴 검사 거리 (m); 0 이면 config 기본값
+---
+bool success
+string dataset_path
+uint16 image_count
+string message
+---
+float64 progress           # 0.0 ~ 1.0
+uint16 captured            # 지금까지 촬영한 뷰 수
+string phase               # INIT/APPROACH/INSPECT/RETREAT/HOME

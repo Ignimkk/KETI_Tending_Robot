@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+  Tending 검사 셀 description [P1 스캐폴드]
+
+  tm_description 의 TM5 매크로를 재사용(tmr_ros2 는 수정하지 않음)하고,
+  카메라/브라켓 마운트 및 상부 CNC/척/엔드밀 충돌 모델을 여기에 추가한다.
+
+  TODO(P1):
+    - flange(tool0) 기준 camera_optical 프레임 (핸드아이 결과 반영)
+    - 시나리오1: 손목 직결 카메라 링크
+    - 시나리오2: L-브라켓(측방 오프셋) + 카메라/링라이트 링크
+    - cnc_frame / chuck / endmill_axis 충돌 모델 (기계별 파라미터)
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="tending_cell">
+
+  <!-- 예시: TM5-900 본체 매크로 포함 (경로는 실제 매크로 인자에 맞게 조정 필요) -->
+  <!-- <xacro:include filename="$(find tm_description)/xacro/macro.tm5-900-nominal.urdf.xacro"/> -->
+
+  <!-- 마운트 오프셋 파라미터 (핸드아이/기구 설계로 확정) -->
+  <xacro:property name="cam_offset_x" value="0.0"/>
+  <xacro:property name="cam_offset_y" value="0.0"/>
+  <xacro:property name="cam_offset_z" value="0.05"/>
+
+  <link name="tending_placeholder_base"/>
+
+  <!-- TODO: 실제 링크/조인트 정의 -->
+
+</robot>

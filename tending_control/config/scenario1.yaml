@@ -1,0 +1,57 @@
+# 시나리오 1 검사 제어 파라미터 (3가지 제어 방식 공용 + 방식별)
+#
+# ⚠️ axis_point/axis_dir 는 검사 대상 툴(엔드밀) 축의 자리표시자입니다.
+#    - rule   : base(base_link) 기준 좌표로 직접 지정
+#    - hybrid : cnc_frame(태스크 프레임) 기준으로 지정 → cnc_frame.xyz/rpy 로 base 변환
+#    실제 값은 티칭/측정(또는 ee_pose_query 로 현재 EE 위치 확인)으로 채우세요.
+
+# ---- 룰베이스 / 하이브리드 (tending_control::scenario1_inspect) ----
+scenario1_inspect:
+  ros__parameters:
+    control_mode: "rule"        # rule | hybrid
+    dry_run: true               # true: 포즈만 출력(오프라인). 실물은 false
+    use_line: false             # true: LINE_T(직선, m/s) / false: PTP_T
+
+    axis_point: [0.4, 0.0, 0.4] # rule=base 기준 / hybrid=cnc_frame 기준
+    axis_dir:   [0.0, 0.0, -1.0]
+    inspect_distance: 0.10      # m
+    angle_start: 0.0
+    angle_end: 6.283185         # 2π (완전 360°)
+    num_views: 12
+    flip_up: false
+
+    velocity: 0.3               # PTP_T rad/s 상당
+    line_velocity: 0.05         # LINE_T m/s
+    acc_time_ms: 200.0
+    pos_tol_m: 0.003
+    ang_tol_rad: 0.02
+    move_timeout_s: 30
+    settle_ms: 300
+
+    # hybrid 전용: 태스크 프레임 + 안전영역 (mc_a.yaml 값과 정합)
+    cnc_frame:
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+    safe_region:
+      min_xyz: [0.2, -0.4, 0.2]
+      max_xyz: [0.7, 0.4, 0.8]
+
+# ---- MoveIt (tending_moveit::scenario1_inspect_moveit) ----
+scenario1_inspect_moveit:
+  ros__parameters:
+    group: "tmr_arm"
+    planning_pipeline: "ompl"           # ompl | chomp | pilz_industrial_motion_planner
+    planner_id: "RRTConnectkConfigDefault"
+    reference_frame: "base"
+    ee_link: "flange"
+    velocity_scaling: 0.1
+    accel_scaling: 0.1
+    planning_time: 5.0
+
+    axis_point: [0.4, 0.0, 0.4]
+    axis_dir:   [0.0, 0.0, -1.0]
+    inspect_distance: 0.10
+    angle_start: 0.0
+    angle_end: 6.283185
+    num_views: 12
+    flip_up: false
