@@ -14,7 +14,12 @@
 | 클라이언트 | **Windows** `RosBridgeClient` (2초 간격 무한 재연결) |
 | 인코딩 | UTF-8 |
 | 프레이밍 | **개행(`\n`) 구분. JSON 1줄 = 1메시지.** 메시지 내부에는 개행을 넣지 않는다 |
-| 최대 클라이언트 | 기본 2 (UI 1 + 디버그 1) |
+| 원격 클라이언트 | Windows GUI 1대 (`allowed_client_ip`, 현재 `172.21.60.68`) |
+
+로봇 제어 권한은 Ubuntu 본 PC의 로컬 ROS 호출과 허용된 Windows GUI 두 경로만 가진다.
+TCP 디버그 클라이언트가 필요할 때는 실물 로봇을 분리한 상태에서 허용 IP를 임시 변경한다.
+운영 기동 전 `ROS_LOCALHOST_ONLY=1`을 설정해 다른 LAN 호스트가 ROS 서비스/액션을 직접
+호출하지 못하게 하고, Windows GUI는 DDS 대신 본 TCP 브리지만 사용한다.
 
 포트 5901 은 TM 로봇의 TMSCT(5890)/TMSVR(5891) 과 겹치지 않도록 선택했다.
 
@@ -171,7 +176,8 @@
 ### 5.3 데드맨 (연결 감시)
 
 - Windows 는 **1초마다 `ping`** 을 보낸다.
-- 브리지는 클라이언트로부터 아무 메시지도 못 받은 시간이 `client_timeout_ms`(기본 3000)를 넘고
+- 브리지는 **현재 명령을 시작한 GUI**로부터 아무 메시지도 못 받은 시간이
+  `client_timeout_ms`(기본 3000)를 넘거나 해당 GUI 연결이 끊기고
   **활성 goal 이 있으면** → goal cancel + `SetEvent(STOP)` 실행 후 `DEADMAN_STOP` 이벤트를 broadcast.
 - 유휴 상태(goal 없음)에서는 타임아웃이 정지를 유발하지 않고 연결만 정리한다.
 
@@ -208,9 +214,10 @@ Windows                          Ubuntu(tending_bridge)
 |---|---|---|
 | `bind_address` | `0.0.0.0` | 리스닝 주소 |
 | `port` | `5901` | 리스닝 포트 |
+| `allowed_client_ip` | `172.21.60.68` | 접속을 허용할 Windows GUI IPv4; 빈 값은 전체 허용 |
 | `state_rate_hz` | `10.0` | `state` 송신 주기 |
 | `client_timeout_ms` | `3000` | 데드맨 타임아웃 |
-| `max_clients` | `2` | 동시 접속 상한 |
+| `max_clients` | `1` | 원격 GUI 한 대만 허용 |
 | `schema_version` | `1` | 봉투의 `v` 값 |
 
 ---

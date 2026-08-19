@@ -111,11 +111,17 @@ private:
       res->message = "알 수 없는 포즈: " + req->pose_name;
       return;
     }
-    if (inspecting_.load()) {
+    bool expected = false;
+    if (!motion_busy_.compare_exchange_strong(expected, true)) {
       res->ok = false;
-      res->message = "검사 실행 중에는 포즈 이동을 받지 않습니다.";
+      res->message = "다른 로봇 모션이 실행 중입니다.";
       return;
     }
+    struct MotionGuard
+    {
+      std::atomic<bool> & flag;
+      ~MotionGuard() {flag.store(false);}
+    } motion_guard{motion_busy_};
     std::string reason;
     if (!bridge_->safety_ok(reason)) {
       res->ok = false;
@@ -134,11 +140,17 @@ private:
     const std::shared_ptr<JogJoint::Request> req,
     std::shared_ptr<JogJoint::Response> res)
   {
-    if (inspecting_.load()) {
+    bool expected = false;
+    if (!motion_busy_.compare_exchange_strong(expected, true)) {
       res->ok = false;
-      res->message = "검사 실행 중에는 조그를 받지 않습니다.";
+      res->message = "다른 로봇 모션이 실행 중입니다.";
       return;
     }
+    struct MotionGuard
+    {
+      std::atomic<bool> & flag;
+      ~MotionGuard() {flag.store(false);}
+    } motion_guard{motion_busy_};
     if (req->joint < 1 || req->joint > 6) {
       res->ok = false;
       res->message = "관절 번호는 1..6 이어야 합니다: " + std::to_string(req->joint);
@@ -184,6 +196,11 @@ private:
       RCLCPP_ERROR(get_logger(), "'inspect' 기준 포즈 미설정으로 거부");
       return rclcpp_action::GoalResponse::REJECT;
     }
+    bool expected = false;
+    if (!motion_busy_.compare_exchange_strong(expected, true)) {
+      RCLCPP_WARN(get_logger(), "다른 로봇 모션 실행 중 — 검사 goal 거부");
+      return rclcpp_action::GoalResponse::REJECT;
+    }
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
 
@@ -223,9 +240,14 @@ private:
     inspecting_.store(true);
     struct Guard
     {
-      std::atomic<bool> & f;
-      ~Guard() {f.store(false);}
-    } guard{inspecting_};
+      std::atomic<bool> & inspecting;
+      std::atomic<bool> & motion_busy;
+      ~Guard()
+      {
+        inspecting.store(false);
+        motion_busy.store(false);
+      }
+    } guard{inspecting_, motion_busy_};
 
     const auto goal = gh->get_goal();
     auto result = std::make_shared<RunInspection::Result>();
@@ -374,6 +396,8 @@ private:
   rclcpp::Service<JogJoint>::SharedPtr jog_srv_;
   rclcpp_action::Server<RunInspection>::SharedPtr action_srv_;
   std::atomic<bool> inspecting_{false};
+  // Windows GUI와 본 PC의 로컬 ROS 명령이 같은 모션 경로를 공유하도록 하는 전역 슬롯.
+  std::atomic<bool> motion_busy_{false};
 };
 
 int main(int argc, char ** argv)

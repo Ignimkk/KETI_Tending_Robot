@@ -170,20 +170,15 @@ size_t JsonLineServer::client_count()
   return clients_.size();
 }
 
-bool JsonLineServer::last_rx_elapsed(std::chrono::milliseconds & out)
+bool JsonLineServer::last_rx_elapsed(ClientId id, std::chrono::milliseconds & out)
 {
   std::lock_guard<std::mutex> lock(mtx_);
-  if (clients_.empty()) {
+  const auto it = clients_.find(id);
+  if (it == clients_.end()) {
     return false;
   }
-  auto newest = std::chrono::steady_clock::time_point::min();
-  for (const auto & kv : clients_) {
-    if (kv.second.last_rx > newest) {
-      newest = kv.second.last_rx;
-    }
-  }
   out = std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::steady_clock::now() - newest);
+    std::chrono::steady_clock::now() - it->second.last_rx);
   return true;
 }
 
@@ -293,6 +288,12 @@ void JsonLineServer::accept_new()
     char ip[INET_ADDRSTRLEN] = {0};
     ::inet_ntop(AF_INET, &peer.sin_addr, ip, sizeof(ip));
     const std::string peer_str = std::string(ip) + ":" + std::to_string(::ntohs(peer.sin_port));
+
+    if (!allowed_client_ip_.empty() && allowed_client_ip_ != ip) {
+      log(1, "허용되지 않은 클라이언트 IP — 거부: " + peer_str);
+      ::close(fd);
+      continue;
+    }
 
     size_t count = 0;
     {

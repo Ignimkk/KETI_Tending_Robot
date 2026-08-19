@@ -6,6 +6,7 @@ TM5 로봇으로 상부 CNC 척에 매달린 엔드밀의 측면 360°를 촬영
 - **[PROJECT_PLAN.md](PROJECT_PLAN.md)** : 전체 실행 계획(통합 문서). `~/.claude/plans/end-mill-robotic-vision-functional-yao.md` 와 **항상 동일하게 유지**.
 - **[research_report.md](research_report.md)** : 구현 상세 보고서(SETUP·계획·패키지/모듈·시나리오별 제어·CLI·검증).
 - **[BRIDGE_INTEGRATION.md](BRIDGE_INTEGRATION.md)** : Windows GUI(C#) 양방향 연동 기술 문서 — 아키텍처·설계 근거·동시성·검증·운영. 프로토콜 정본은 `../tending_bridge/doc/PROTOCOL.md`.
+- **[ROBOT_GUI_RUNBOOK.md](ROBOT_GUI_RUNBOOK.md)** : Windows/Ubuntu pull·빌드·기동·첫 실물 시험 명령.
 - **[../command.txt](../command.txt)** (`src/command.txt`) : 실행 명령어 모음. 노드/런치/파라미터 변경 시 갱신.
 - 본 README : 패키지 역할 요약.
 

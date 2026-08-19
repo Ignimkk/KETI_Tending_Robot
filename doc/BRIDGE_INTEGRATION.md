@@ -286,7 +286,7 @@ Windows                tending_bridge                    tm_driver / inspection_
 ```
 Windows                tending_bridge
    │ (ping 두절)          │ watchdog 200ms 주기
-   │                     │ last_rx_elapsed() > 3000ms  AND  job_active_
+   │                     │ 명령 소유 GUI 무음 > 3000ms 또는 연결 끊김 AND job_active_
    │                     ├─ event{DEADMAN_STOP}  (broadcast)
    │                     ├─ SetEvent(STOP) + cancel goal
 ```
@@ -430,7 +430,8 @@ GUI 는 Ubuntu 프로세스를 제어할 수 없으므로, **브리지 링크 �
 | `port` | `5901` | 리스닝 포트 |
 | `state_rate_hz` | `10.0` | `state` 송신 주기 |
 | `client_timeout_ms` | `3000` | 데드맨 타임아웃 (Windows ping 1초 → 2회 유실까지 허용) |
-| `max_clients` | `2` | UI 1 + 디버그 1 |
+| `allowed_client_ip` | `172.21.60.68` | 허용된 Windows GUI IPv4 |
+| `max_clients` | `1` | 원격 GUI 한 대 |
 | `schema_version` | `1` | 봉투의 `v` |
 | `driver_timeout_ms` | `2000` | 이 시간 이상 `feedback_states` 끊기면 `DRIVER_LOST` |
 

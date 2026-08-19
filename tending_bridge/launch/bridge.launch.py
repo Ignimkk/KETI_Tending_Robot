@@ -29,6 +29,10 @@ def generate_launch_description():
                               description='TCP 리스닝 주소'),
         DeclareLaunchArgument('port', default_value='5901',
                               description='TCP 리스닝 포트 (TM 5890/5891 과 충돌 회피)'),
+        DeclareLaunchArgument('allowed_client_ip', default_value='172.21.60.68',
+                              description='접속을 허용할 Windows GUI IPv4 (빈 값이면 전체 허용)'),
+        DeclareLaunchArgument('max_clients', default_value='1',
+                              description='동시 TCP 클라이언트 상한'),
         Node(
             package='tending_bridge', executable='tending_bridge', name='tending_bridge',
             output='screen',
@@ -39,6 +43,10 @@ def generate_launch_description():
                     LaunchConfiguration('bind_address'), value_type=str)},
                 # 런치 인자는 문자열이므로 int 로 명시 변환해야 파라미터 타입이 맞는다.
                 {'port': ParameterValue(LaunchConfiguration('port'), value_type=int)},
+                {'allowed_client_ip': ParameterValue(
+                    LaunchConfiguration('allowed_client_ip'), value_type=str)},
+                {'max_clients': ParameterValue(
+                    LaunchConfiguration('max_clients'), value_type=int)},
             ],
         ),
     ])

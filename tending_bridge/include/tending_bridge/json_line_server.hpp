@@ -49,6 +49,8 @@ public:
   void set_connect_handler(ConnectHandler h) { on_connect_ = std::move(h); }
   void set_disconnect_handler(DisconnectHandler h) { on_disconnect_ = std::move(h); }
   void set_log_handler(LogHandler h) { on_log_ = std::move(h); }
+  // 비어 있지 않으면 해당 IPv4 주소의 클라이언트만 허용한다.
+  void set_allowed_client_ip(const std::string & ip) { allowed_client_ip_ = ip; }
 
   // 리스닝 시작 후 IO 스레드 기동. 실패 시 false 와 err 채움.
   bool start(const std::string & bind_address, uint16_t port, int max_clients, std::string & err);
@@ -64,9 +66,9 @@ public:
 
   size_t client_count();
 
-  // 마지막으로 "아무 클라이언트에게서든" 데이터를 받은 시각. 데드맨 판정에 사용.
-  // 클라이언트가 하나도 없으면 nullopt 대신 false 를 반환한다.
-  bool last_rx_elapsed(std::chrono::milliseconds & out);
+  // 특정 클라이언트의 마지막 수신 이후 경과 시간. 명령 소유자별 데드맨 판정에 사용한다.
+  // 해당 클라이언트가 이미 끊겼으면 false 를 반환한다.
+  bool last_rx_elapsed(ClientId id, std::chrono::milliseconds & out);
 
 private:
   struct Client
@@ -88,6 +90,7 @@ private:
   int listen_fd_{-1};
   int wake_fds_[2]{-1, -1};         // self-pipe: 송신/종료를 poll 에 알림
   int max_clients_{2};
+  std::string allowed_client_ip_;
 
   std::thread thread_;
   std::atomic<bool> running_{false};

@@ -5,6 +5,9 @@ tending_bridge:
     bind_address: "0.0.0.0"
     port: 5901
 
+    # 로봇 제어 권한을 가진 Windows GUI PC. 빈 문자열이면 모든 IPv4 허용.
+    allowed_client_ip: "172.21.60.68"
+
     # state 메시지 주기. 플래그 변화 시에는 주기와 무관하게 즉시 추가 송신한다.
     state_rate_hz: 10.0
 
@@ -12,8 +15,8 @@ tending_bridge:
     # Windows 는 1초마다 ping 을 보내므로 3초면 2회 유실까지 견딘다.
     client_timeout_ms: 3000
 
-    # 동시 접속 상한 (UI 1 + 디버그 1)
-    max_clients: 2
+    # 원격 제어자는 Windows GUI 한 대만 허용한다. 본 PC는 ROS 로컬 명령을 사용한다.
+    max_clients: 1
 
     # 봉투의 v 값. 프로토콜을 바꾸면 올리고 양쪽을 함께 수정할 것.
     schema_version: 1

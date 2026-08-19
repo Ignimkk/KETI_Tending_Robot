@@ -12,6 +12,7 @@
 //  - JsonLineServer 콜백은 IO 스레드에서 온다. 여기서는 절대 블로킹하지 않고
 //    콜백 기반 async_send_request/async_send_goal 만 사용한다.
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -68,10 +69,11 @@ public:
   : rclcpp::Node("tending_bridge")
   {
     bind_address_ = declare_parameter<std::string>("bind_address", "0.0.0.0");
+    allowed_client_ip_ = declare_parameter<std::string>("allowed_client_ip", "172.21.60.68");
     port_ = declare_parameter<int>("port", 5901);
     state_rate_hz_ = declare_parameter<double>("state_rate_hz", 10.0);
     client_timeout_ms_ = declare_parameter<int>("client_timeout_ms", 3000);
-    max_clients_ = declare_parameter<int>("max_clients", 2);
+    max_clients_ = declare_parameter<int>("max_clients", 1);
     schema_version_ = declare_parameter<int>("schema_version", 1);
     driver_timeout_ms_ = declare_parameter<int>("driver_timeout_ms", 2000);
 
@@ -108,6 +110,7 @@ public:
         }
       });
     server_.set_connect_handler([this](ClientId id) {on_client_connect(id);});
+    server_.set_disconnect_handler([this](ClientId id) {on_client_disconnect(id);});
     server_.set_line_handler([this](ClientId id, const std::string & l) {on_line(id, l);});
 
     const auto period = std::chrono::milliseconds(
@@ -121,6 +124,7 @@ public:
   bool start_server()
   {
     std::string err;
+    server_.set_allowed_client_ip(allowed_client_ip_);
     if (!server_.start(bind_address_, static_cast<uint16_t>(port_), max_clients_, err)) {
       RCLCPP_ERROR(get_logger(), "TCP 서버 기동 실패: %s", err.c_str());
       return false;
@@ -305,6 +309,19 @@ private:
     server_.send_to(id, build_state().dump());   // PROTOCOL §6: 연결 직후 스냅샷 1회
   }
 
+  void on_client_disconnect(ClientId id)
+  {
+    bool owns_active_job = false;
+    {
+      std::lock_guard<std::mutex> lock(state_mtx_);
+      owns_active_job = job_active_ && job_client_ == id;
+    }
+    if (owns_active_job && !deadman_fired_.exchange(true)) {
+      send_event("error", "DEADMAN_STOP", "명령을 실행한 GUI 연결 끊김 — 자동 정지");
+      do_stop("명령 소유 GUI 연결 끊김");
+    }
+  }
+
   void on_line(ClientId cid, const std::string & line)
   {
     json j;
@@ -319,6 +336,8 @@ private:
     const int v = j.value("v", 0);
     if (v != schema_version_) {
       RCLCPP_WARN(get_logger(), "스키마 버전 불일치: 수신 v%d, 기대 v%d", v, schema_version_);
+      send_ack(cid, j.value("id", std::string()), false, "SCHEMA_MISMATCH");
+      return;
     }
     if (j.value("type", std::string()) != "cmd") {
       return;   // 클라이언트가 보낼 수 있는 것은 cmd 뿐
@@ -362,6 +381,7 @@ private:
     job_phase_ = "PENDING";
     job_progress_ = 0.0;
     job_captured_ = 0;
+    cancel_requested_ = false;
     return true;
   }
 
@@ -372,6 +392,10 @@ private:
     job_phase_.clear();
     job_progress_ = 0.0;
     job_captured_ = 0;
+    job_id_.clear();
+    job_cmd_.clear();
+    job_client_ = 0;
+    cancel_requested_ = false;
     inspect_goal_.reset();
   }
 
@@ -408,8 +432,16 @@ private:
           release_job();
           return;
         }
-        std::lock_guard<std::mutex> lock(state_mtx_);
-        inspect_goal_ = gh;
+        bool cancel_now = false;
+        {
+          std::lock_guard<std::mutex> lock(state_mtx_);
+          inspect_goal_ = gh;
+          cancel_now = cancel_requested_;
+        }
+        // goal 수락 전에 cancel/stop 이 도착한 경우 수락 직후 즉시 취소한다.
+        if (cancel_now) {
+          inspect_cli_->async_cancel_goal(gh);
+        }
       };
 
     opt.feedback_callback =
@@ -526,6 +558,7 @@ private:
         return;
       }
       gh = inspect_goal_;
+      cancel_requested_ = true;
     }
     send_ack(cid, id, true, "");
 
@@ -562,6 +595,9 @@ private:
     GoalHandleRunInspection::SharedPtr gh;
     {
       std::lock_guard<std::mutex> lock(state_mtx_);
+      if (job_active_ && job_cmd_ == "run_inspection") {
+        cancel_requested_ = true;
+      }
       gh = inspect_goal_;
     }
     if (gh) {
@@ -605,33 +641,42 @@ private:
     }
 
     // 2) 데드맨 — 검사 중 GUI 무음이면 정지 (PROTOCOL §5.3)
-    std::chrono::milliseconds silence{0};
-    if (!server_.last_rx_elapsed(silence)) {
-      return;   // 접속 클라이언트 없음: 유휴 상태로 간주
-    }
     bool active = false;
+    ClientId owner = 0;
     {
       std::lock_guard<std::mutex> lock(state_mtx_);
       active = job_active_;
+      owner = job_client_;
     }
-    if (active && silence.count() > client_timeout_ms_ && !deadman_fired_) {
-      deadman_fired_ = true;
+    if (!active) {
+      deadman_fired_.store(false);
+      return;
+    }
+
+    std::chrono::milliseconds silence{0};
+    const bool owner_connected = server_.last_rx_elapsed(owner, silence);
+    if ((!owner_connected || silence.count() > client_timeout_ms_) &&
+      !deadman_fired_.exchange(true))
+    {
       send_event(
         "error", "DEADMAN_STOP",
-        "GUI 무음 " + std::to_string(silence.count()) + "ms — 자동 정지");
+        owner_connected ?
+        ("명령 소유 GUI 무음 " + std::to_string(silence.count()) + "ms — 자동 정지") :
+        "명령 소유 GUI 연결 없음 — 자동 정지");
       do_stop("데드맨 타임아웃");
-    } else if (silence.count() <= client_timeout_ms_) {
-      deadman_fired_ = false;
+    } else if (owner_connected && silence.count() <= client_timeout_ms_) {
+      deadman_fired_.store(false);
     }
   }
 
   // ================= 멤버 =================
 
   std::string bind_address_;
+  std::string allowed_client_ip_;
   int port_{5901};
   double state_rate_hz_{10.0};
   int client_timeout_ms_{3000};
-  int max_clients_{2};
+  int max_clients_{1};
   int schema_version_{1};
   int driver_timeout_ms_{2000};
 
@@ -663,14 +708,15 @@ private:
   double job_progress_{0.0};
   int job_captured_{0};
   ClientId job_client_{0};
+  bool cancel_requested_{false};
   GoalHandleRunInspection::SharedPtr inspect_goal_;
 
   // 이벤트 에지 검출용. prev_e_stop_/prev_guard_/prev_robot_error_ 는 event_mtx_ 로 보호.
-  // prev_driver_alive_/deadman_fired_ 는 watchdog 타이머 단일 경로에서만 접근한다.
+  // deadman_fired_ 는 IO disconnect 콜백과 watchdog 양쪽에서 접근하므로 atomic 이다.
   std::mutex event_mtx_;
   bool prev_e_stop_{false}, prev_guard_{false}, prev_robot_error_{false};
   bool prev_driver_alive_{false};
-  bool deadman_fired_{false};
+  std::atomic<bool> deadman_fired_{false};
 };
 
 int main(int argc, char ** argv)

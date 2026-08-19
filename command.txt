@@ -116,10 +116,14 @@ ros2 service call /set_event tm_msgs/srv/SetEvent "{func: 11, arg0: 0, arg1: 0}"
 ------------------------------------------------------------------------
 [8] Windows GUI 연동 (tending_bridge) — doc/BRIDGE_INTEGRATION.md
 ------------------------------------------------------------------------
+# ROS 제어 그래프는 본 PC에서만 접근. Windows GUI는 DDS가 아니라 TCP 5901 브리지로 접근한다.
+export ROS_LOCALHOST_ONLY=1
+
 # 기동 순서 (1 → 2 → 3)
 ros2 launch tm_driver tm_bringup.launch.py <TM5_IP>       # 1) 드라이버(실물)
 ros2 launch tending_control mvp_inspect.launch.py         # 2) 검사 오케스트레이션
 ros2 launch tending_bridge bridge.launch.py               # 3) 브리지 (TCP 5901)
+# 기본 허용 GUI: 172.21.60.68 / GUI가 접속할 Ubuntu 주소: 172.21.50.85
 
 # 포트 변경
 ros2 launch tending_bridge bridge.launch.py port:=5901 bind_address:=0.0.0.0
@@ -128,6 +132,8 @@ ros2 launch tending_bridge bridge.launch.py port:=5901 bind_address:=0.0.0.0
 sudo ufw allow 5901/tcp
 
 # 목 클라이언트 (Windows 없이 프로토콜 검증)
+# 아래 로컬 mock 시험 때만 실물 로봇을 분리하고 브리지 허용 IP를 임시로 바꾼다.
+ros2 launch tending_bridge bridge.launch.py allowed_client_ip:=127.0.0.1
 python3 src/tending_bridge/scripts/mock_ui_client.py                    # 상태 스트림 관찰
 python3 src/tending_bridge/scripts/mock_ui_client.py --goto home
 python3 src/tending_bridge/scripts/mock_ui_client.py --jog 6 --delta 30
