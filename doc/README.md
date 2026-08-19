@@ -8,7 +8,7 @@ TM5 로봇으로 상부 CNC 척에 매달린 엔드밀의 측면 360°를 촬영
 - 본 README : 패키지 역할 요약.
 
 ## 핵심 원칙
-- **tmr_ros2 = 코어**: 로봇 bringup / MoveIt2 / 실물 연동은 tmr_ros2 공식 런치를 그대로 사용(`tm_bringup.launch.py`, `tm5-900_run_move_group.launch.py`). Gazebo 미사용.
+- **tmr_ros2 = 코어**: 로봇 bringup / MoveIt2 / 실물 연동은 tmr_ros2 공식 런치를 그대로 사용(`tm_bringup.launch.py`, `tm5-700_run_move_group.launch.py`). Gazebo 미사용.
 - **tending_* = 보충**: tmr_ros2 에 없는 검사 제어·인터페이스·카메라·데이터. bringup 을 재구현하지 않음.
 
 ## 패키지 역할 (모두 `tmr_ros2` 외부, 읽기 전용 의존)
@@ -29,7 +29,7 @@ colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 
 # 로봇 bringup 은 tmr_ros2 로 (실물)
-ros2 launch tm_driver tm_bringup.launch.py 192.168.0.10
+ros2 launch tm_driver tm_bringup.launch.py 172.21.43.12
 # 시나리오1 rule 검사 (오프라인 미리보기는 dry_run:=true)
 ros2 launch tending_control scenario1_inspect.launch.py control_mode:=rule dry_run:=false
 ```

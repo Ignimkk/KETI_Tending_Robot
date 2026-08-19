@@ -4,8 +4,8 @@
 // 각 뷰에 계획·실행한다. 계획기(OMPL/CHOMP/Pilz)와 planner_id 는 파라미터로 선택.
 // 충돌 환경(상부 척/CNC)은 PlanningScene 에 추가하면 자동 회피된다(TODO: description 반영).
 //
-// 실행 전제: tm5-900_moveit_config 의 move_group 이 떠 있어야 한다.
-//   ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py   (실물/시뮬)
+// 실행 전제: tm5-700_moveit_config 의 move_group 이 떠 있어야 한다.
+//   ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py   (실물/시뮬)
 //
 // 참고: 이 노드는 move_group 이 필요하므로 오프라인 dry_run 은 제공하지 않는다
 //       (룰/하이브리드의 오프라인 검증은 tending_control::scenario1_inspect 사용).

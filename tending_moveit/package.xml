@@ -3,7 +3,7 @@
 <package format="3">
   <name>tending_moveit</name>
   <version>0.1.0</version>
-  <description>시나리오 1 검사의 MoveIt 2 기반(충돌회피) 제어 로직. OMPL/CHOMP/Pilz 계획기 선택. tm5-900_moveit_config 재사용.</description>
+  <description>시나리오 1 검사의 MoveIt 2 기반(충돌회피) 제어 로직. OMPL/CHOMP/Pilz 계획기 선택. tm5-700_moveit_config 재사용.</description>
 
   <maintainer email="kmingi98@gmail.com">mk</maintainer>
   <license>BSD-3-Clause</license>
@@ -16,8 +16,8 @@
   <depend>moveit_core</depend>
   <depend>tending_control</depend>
 
-  <!-- 실행 시 move_group 이 필요: tm5-900_moveit_config 재사용 -->
-  <exec_depend>tm5-900_moveit_config</exec_depend>
+  <!-- 실행 시 move_group 이 필요: tm5-700_moveit_config 재사용 -->
+  <exec_depend>tm5-700_moveit_config</exec_depend>
   <exec_depend>tm_description</exec_depend>
   <exec_depend>xacro</exec_depend>
 

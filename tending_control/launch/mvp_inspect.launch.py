@@ -2,7 +2,7 @@
 #
 # 로봇 브링업은 tmr_ros2 공식 런치로 별도 수행한다.
 #   실물 드라이버:  ros2 launch tm_driver tm_bringup.launch.py <ROBOT_IP>
-#   MoveIt 포함:    ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=<IP>
+#   MoveIt 포함:    ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py robot_ip:=<IP>
 #
 # 실행 후 검사 시작(액션):
 #   ros2 action send_goal /run_inspection tending_interfaces/action/RunInspection \

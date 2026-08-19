@@ -5,7 +5,7 @@
   <version>0.1.0</version>
   <description>
     카메라·링라이트가 부착된 TM5 셀 브링업 (예정). 로봇 자체 브링업/MoveIt/RViz 는
-    tmr_ros2 공식 런치를 그대로 사용하고, 본 패키지는 tmr_ros2 의 tm5-900 URDF/xacro 에
+    tmr_ros2 공식 런치를 그대로 사용하고, 본 패키지는 tmr_ros2 의 tm5-700 URDF/xacro 에
     카메라+링라이트를 추가한 확장 description(tending_description)을 얹어 bringup 하는
     런치를 제공할 예정이다. [현재는 골격만 유지 — 카메라 부착 후 채움]
   </description>

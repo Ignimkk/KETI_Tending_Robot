@@ -1,9 +1,10 @@
 # inspection_manager 파라미터 (명명 포즈 + 모션 설정)
 #
-# ⚠️ 주의: 아래 관절값은 자리표시자(placeholder)입니다.
+# ⚠️ 주의: approach/inspect/retreat 관절값은 아직 자리표시자(placeholder)입니다.
 #    실제 배포 전 TMflow 수동 티칭으로 얻은 안전한 값으로 반드시 교체하세요.
 #    (상부 CNC 척과의 충돌 여유를 반드시 확인)
 #    관절 순서: [J1, J2, J3, J4, J5, J6] (rad)
+#    home/init: 사용자 확정 initial pose = [0, 0, -90, 0, -90, 0] deg (2026-07-31, TM5-700 기준).
 inspection_manager:
   ros__parameters:
     velocity: 0.4          # rad/s (<= pi)
@@ -16,8 +17,8 @@ inspection_manager:
 
     pose_names: ["home", "init", "approach", "inspect", "retreat"]
     poses:
-      home:     [0.0, 0.0, 1.5707, 0.0, 1.5707, 0.0]
-      init:     [0.0, 0.0, 1.4000, 0.0, 1.4000, 0.0]
+      home:     [0.0, 0.0, -1.5708, 0.0, -1.5708, 0.0]
+      init:     [0.0, 0.0, -1.5708, 0.0, -1.5708, 0.0]
       approach: [0.0, 0.0, 1.3000, 0.0, 1.5000, 0.0]
       inspect:  [0.0, 0.0, 1.2000, 0.0, 1.5000, 0.0]
       retreat:  [0.0, 0.0, 1.3000, 0.0, 1.5000, 0.0]

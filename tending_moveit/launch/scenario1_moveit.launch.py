@@ -6,8 +6,8 @@
 #    tmr_arm 그룹이 비므로 사용하지 않음).
 #
 # 전제: move_group 이 이미 떠 있어야 한다.
-#   실물:   ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=<IP>
-#   가상:   ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py   (robot_ip 생략 = fake 로봇)
+#   실물:   ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py robot_ip:=<IP>
+#   가상:   ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py   (robot_ip 생략 = fake 로봇)
 # 그런 다음:
 #   ros2 launch tending_moveit scenario1_moveit.launch.py
 import os
@@ -31,15 +31,15 @@ def _load_yaml(pkg, rel):
 
 
 def generate_launch_description():
-    moveit_pkg = 'tm5-900_moveit_config'
+    moveit_pkg = 'tm5-700_moveit_config'
 
     # run_move_group 과 동일: robot_description 은 tm_description 의 xacro 로.
     urdf_xacro = os.path.join(
-        get_package_share_directory('tm_description'), 'xacro', 'tm5-900.urdf.xacro')
+        get_package_share_directory('tm_description'), 'xacro', 'tm5-700.urdf.xacro')
     robot_description = {
         'robot_description': xacro.process_file(urdf_xacro).toxml()}
     robot_description_semantic = {
-        'robot_description_semantic': _load_file(moveit_pkg, 'config/tm5-900.srdf')}
+        'robot_description_semantic': _load_file(moveit_pkg, 'config/tm5-700.srdf')}
     robot_description_kinematics = {
         'robot_description_kinematics': _load_yaml(moveit_pkg, 'config/kinematics.yaml')}
 

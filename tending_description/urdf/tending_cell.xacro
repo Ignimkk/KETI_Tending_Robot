@@ -13,8 +13,8 @@
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="tending_cell">
 
-  <!-- 예시: TM5-900 본체 매크로 포함 (경로는 실제 매크로 인자에 맞게 조정 필요) -->
-  <!-- <xacro:include filename="$(find tm_description)/xacro/macro.tm5-900-nominal.urdf.xacro"/> -->
+  <!-- 예시: TM5-700 본체 매크로 포함 (경로는 실제 매크로 인자에 맞게 조정 필요) -->
+  <!-- <xacro:include filename="$(find tm_description)/xacro/macro.tm5-700-nominal.urdf.xacro"/> -->
 
   <!-- 마운트 오프셋 파라미터 (핸드아이/기구 설계로 확정) -->
   <xacro:property name="cam_offset_x" value="0.0"/>

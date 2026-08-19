@@ -91,7 +91,7 @@ public:
     if (!bridge_->wait_for_services(10s)) {
       RCLCPP_ERROR(get_logger(),
         "tm_driver 서비스 미검출. tmr_ros2 로 로봇을 먼저 bringup 하세요 "
-        "(예: tm5-900_run_move_group.launch.py 또는 tm_bringup.launch.py).");
+        "(예: tm5-700_run_move_group.launch.py 또는 tm_bringup.launch.py).");
       return;
     }
     // 첫 상태 피드백 수신까지 대기(구독 시작 직후 레이스 방지).

@@ -1,7 +1,7 @@
 # 시나리오 1 검사 — 제어방식 (1) 룰베이스 / (3) 하이브리드 (tending_control::scenario1_inspect)
 #
 # 로봇 브링업은 tmr_ros2 공식 런치로 별도 수행한다(본 런치는 제어 노드만 띄운다).
-#   실물 예:  ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=<IP>
+#   실물 예:  ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py robot_ip:=<IP>
 #            (또는 드라이버만: ros2 launch tm_driver tm_bringup.launch.py <IP>)
 #
 # 예:

@@ -19,14 +19,14 @@
 [2] 로봇 브링업 / MoveIt / RViz  ← tmr_ros2 공식 런치 사용
 ------------------------------------------------------------------------
 # 드라이버만 (실물). TMflow Ethernet Slave/Listen Node 활성 + 프로젝트 실행 필요
-ros2 launch tm_driver tm_bringup.launch.py 192.168.0.10
+ros2 launch tm_driver tm_bringup.launch.py 172.21.43.12
 
 # MoveIt + RViz + 드라이버 (실물)
-ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=192.168.0.10
+ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py robot_ip:=172.21.43.12
 
 # ★ 가상(fake) 로봇 + MoveIt + RViz — robot_ip 생략 시 tmr_ros2 공식 fake 로봇 사용
 #   (로그 "use fake robot"). set_positions/feedback/joint_states 제공, RViz 로 로봇 표시.
-ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py
+ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py
 
 # 연결/상태 확인
 ros2 topic echo /feedback_states --field is_sct_connected
@@ -39,7 +39,7 @@ ros2 topic echo /tool_pose
     용도: MoveIt RViz 의 interactive marker 로 로봇을 끌어 옮기며 목표 좌표 채집
 ------------------------------------------------------------------------
 # 터미널 A: [2] 로 로봇 bringup (RViz 의 MotionPlanning → interactive marker 로 수동 이동)
-ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py            # 가상
+ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py            # 가상
 # 터미널 B: 1초마다 EE pose + 관절값을 정리된 형태로 출력
 ros2 run tending_control ee_pose_query
 #   옵션: -p rate_hz:=2.0  -p once:=true  -p ee_frame:=flange  -p base_frame:=base
@@ -76,8 +76,8 @@ ros2 run tending_control scenario1_inspect --ros-args \
 ------------------------------------------------------------------------
 # 터미널 A: run_move_group 으로 move_group 기동
 #   실물:  robot_ip:=<IP> 지정  /  가상(fake, 실물없이 RViz 동작확인):  robot_ip 생략
-ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py            # 가상 로봇
-# ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=192.168.0.10  # 실물
+ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py            # 가상 로봇
+# ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py robot_ip:=172.21.43.12  # 실물
 
 # 터미널 B: MoveIt 검사 노드 (run_move_group 과 동일 방식으로 description 주입)
 ros2 launch tending_moveit scenario1_moveit.launch.py

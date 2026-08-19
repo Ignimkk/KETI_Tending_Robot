@@ -191,7 +191,7 @@
 - 검증: 균등 각도·거리 일관성, N회 트리거(스텁 이미지). 완료기준: 지정 각도범위 자동 트리거·저장. 리스크: 트리거-모션 지연 동기. **실이미지 품질 검증은 P1으로 유예.**
 
 ### 단계 9 — 3가지 제어 방식 구현·비교
-- 세부: `motion_executor` 전략 플러그인 — (a)rule/하드코딩(`send_script` 고정 시퀀스), (b)MoveIt(MoveGroup/Cartesian, tm5-900_moveit_config 재사용), (c)태스크프레임+YAML(상대 좌표 궤적생성, 필요시 Pilz/Cartesian 결합).
+- 세부: `motion_executor` 전략 플러그인 — (a)rule/하드코딩(`send_script` 고정 시퀀스), (b)MoveIt(MoveGroup/Cartesian, tm5-700_moveit_config 재사용), (c)태스크프레임+YAML(상대 좌표 궤적생성, 필요시 Pilz/Cartesian 결합).
 - 파일: `tending_control/src/strategy_rule.cpp`, `strategy_moveit.cpp`, `strategy_taskframe.cpp` + 공통 `motion_strategy.hpp`.
 - 검증: 동일 검사 시퀀스를 3방식으로 실행, B표 지표 측정. 완료기준: 3방식 동작·정량 비교표. 리스크: MoveIt 컨트롤러/충돌환경 셋업 비용(범위 최소화 결정 반영).
 
@@ -201,7 +201,7 @@
 - 검증: e-stop/케이블 분리/한계초과 주입 테스트. 완료기준: 모든 결함에서 안전 정지·복구. 리스크: 상부 척 충돌은 물리 방지책(저속·여유·시뮬 선검증) 병행.
 
 ### 단계 11 — 시뮬/오프라인 검증 (경량)
-- 세부: RViz+MoveIt로 도달성·충돌 점검(tm5-900_moveit_config 재사용). Gazebo는 선택. 실물 전 저속 드라이런.
+- 세부: RViz+MoveIt로 도달성·충돌 점검(tm5-700_moveit_config 재사용). Gazebo는 선택. 실물 전 저속 드라이런.
 - 파일: `tending_bringup/launch/rviz_check.launch.py`, `tending_bringup/rviz/*.rviz`.
 - 검증: 계획된 궤적 충돌 0. 완료기준: 실물 투입 전 승인. 리스크: 시뮬-실물 캘리브 오차.
 
@@ -312,7 +312,7 @@ ros2 action send_goal /run_inspection tending_interfaces/action/RunInspection \
 
 ## 패키지 관리 규칙 (재확인)
 - 신규 패키지는 모두 `src/` 아래, `tmr_ros2` **외부**에 생성: `tending_interfaces`, `tending_description`, `tending_camera`, `tending_control`, `tending_moveit`, `tending_calibration`, `tending_data`, `tending_bringup`, `tending_bridge`(P2). 문서는 `src/doc/`, 명령은 `src/command.txt`.
-- **★ 핵심 원칙 — tmr_ros2 = 코어:** 로봇 **bringup / MoveIt2 / 실물 연동**은 tmr_ros2 공식 런치를 그대로 사용한다(`tm_bringup.launch.py`, `tm5-900_run_move_group.launch.py` 등). Gazebo 는 사용하지 않는다. `tending_*` 는 tmr_ros2 에 없는 **보충**(검사 제어·인터페이스·카메라·데이터)만 담당하고 bringup 을 재구현하지 않는다.
+- **★ 핵심 원칙 — tmr_ros2 = 코어:** 로봇 **bringup / MoveIt2 / 실물 연동**은 tmr_ros2 공식 런치를 그대로 사용한다(`tm_bringup.launch.py`, `tm5-700_run_move_group.launch.py` 등). Gazebo 는 사용하지 않는다. `tending_*` 는 tmr_ros2 에 없는 **보충**(검사 제어·인터페이스·카메라·데이터)만 담당하고 bringup 을 재구현하지 않는다.
 - **패키지 목적:** 각 노드의 launch/config 는 그 노드를 소유한 패키지에 둔다(검사 launch/config → `tending_control`). `tending_bringup` 은 **골격만 유지** — 추후 카메라·링라이트를 tmr_ros2 URDF/xacro 에 부착한 확장 셀 bringup 용(카메라 부착 후 채움).
 - `tmr_ros2` 내부에는 **어떤 파일도 생성/수정하지 않는다.** 서비스/토픽/액션/xacro/MoveIt config는 의존성으로만 참조.
 - 언어: 신규 노드 C++(rclcpp). launch는 Python.
@@ -363,14 +363,14 @@ ros2 action send_goal /run_inspection tending_interfaces/action/RunInspection \
 - **신규 파일:** `tending_control/{include/tending_control/pose_utils.hpp, src/pose_utils.cpp, src/scenario1_inspect.cpp, src/ee_pose_query.cpp, test/test_pose_utils.cpp, config/scenario1.yaml, launch/scenario1_inspect.launch.py}`, `robot_io_bridge`(Cartesian 이동 추가), `tending_moveit/*`(+`launch/scenario1_moveit.launch.py`).
 - **실행:** (로봇 bringup 은 tmr_ros2 로 먼저 — command.txt [2])
   - 룰/하이브리드: `ros2 launch tending_control scenario1_inspect.launch.py control_mode:=rule|hybrid dry_run:=false`
-  - MoveIt: `ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py robot_ip:=<IP>` 후 `ros2 launch tending_moveit scenario1_moveit.launch.py`
+  - MoveIt: `ros2 launch tm5-700_moveit_config tm5-700_run_move_group.launch.py robot_ip:=<IP>` 후 `ros2 launch tending_moveit scenario1_moveit.launch.py`
   - EE 좌표 추적(수동 티칭): `ros2 run tending_control ee_pose_query` — MoveIt RViz 의 interactive marker 로 로봇을 끌어 옮기며 1Hz 로 base→flange 포즈(+관절값, 복붙용 TM Cartesian/joints)를 출력. 포즈는 **TF(base→ee_frame)** 에서 읽어 RViz 와 일치하고 가상 로봇에서도 유효(fake 의 tool_pose 미계산과 무관). rule 목표(scenario1.yaml axis_point/pose, poses.yaml joints) 채집용.
 
 ### 무하드웨어 검증 방법 (fake 제거 후 — tmr_ros2 공식 가상 로봇 활용)
 
-- **★ tmr_ros2 공식 가상(fake) 로봇:** `tm5-900_run_move_group.launch.py` 를 **`robot_ip` 없이** 실행하면 tmr_ros2 가 내장 fake 로봇으로 동작한다(`tm_ros2_composition_moveit.cpp` 의 `is_fake`, 로그 "use fake robot"). `move_group`+RViz+`/set_positions`·`/feedback_states`·`/joint_states`·FollowJointTrajectory 제공, `tmr_arm` 그룹 정상.
+- **★ tmr_ros2 공식 가상(fake) 로봇:** `tm5-700_run_move_group.launch.py` 를 **`robot_ip` 없이** 실행하면 tmr_ros2 가 내장 fake 로봇으로 동작한다(`tm_ros2_composition_moveit.cpp` 의 `is_fake`, 로그 "use fake robot"). `move_group`+RViz+`/set_positions`·`/feedback_states`·`/joint_states`·FollowJointTrajectory 제공, `tmr_arm` 그룹 정상.
   - **검증 완료:** 가상 로봇 + `tending_moveit/scenario1_moveit.launch.py` → OMPL 로 view 0..N 계획·실행, `joint_states` 가 실제로 이동 → **RViz 에서 로봇이 궤도를 도는 것 확인** ✓ (실물 불필요)
-  - 주의: `scenario1_moveit.launch.py` 의 robot_description 은 `MoveItConfigsBuilder` 가 아니라 **run_move_group 과 동일하게** `tm_description/xacro/tm5-900.urdf.xacro` + `config/tm5-900.srdf` 로 구성해야 `tmr_arm` 그룹이 유효하다(불일치 시 그룹이 빔).
+  - 주의: `scenario1_moveit.launch.py` 의 robot_description 은 `MoveItConfigsBuilder` 가 아니라 **run_move_group 과 동일하게** `tm_description/xacro/tm5-700.urdf.xacro` + `config/tm5-700.srdf` 로 구성해야 `tmr_arm` 그룹이 유효하다(불일치 시 그룹이 빔).
 - **`scenario1_inspect dry_run:=true`** — rule/hybrid 궤도 포즈 계산·출력(이동 없음).
 - **`pose_utils` gtest 3종** — 검사거리·look-at·TM 왕복·등각 분할 (통과).
 
@@ -383,5 +383,17 @@ ros2 action send_goal /run_inspection tending_interfaces/action/RunInspection \
 2. TMflow 티칭으로 `config/poses.yaml` 자리표시자 값 교체(상부 척 충돌 여유 확인).
 3. `safety_monitor` 독립 노드 분리(현재는 `robot_io_bridge` 이동 중 안전검사에 인라인) + 워크스페이스 박스/SW 관절한계.
 4. P1: 카메라 실드라이버(`use_stub:=false`) + `tending_calibration` 핸드아이.
+
+## 실물 로봇 확정 사항 (2026-07-31)
+
+| 항목 | 값 |
+|---|---|
+| 로봇 모델 | **TM5-700** (기존 문서/명령의 tm5-900 예시를 tm5-700 로 전면 교체: `tm5-700_moveit_config`, `tm5-700_run_move_group.launch.py`, `tm5-700.urdf.xacro`, `tm5-700.srdf` — tmr_ros2 에 이미 존재하는 패키지 재사용, `tmr_arm` 그룹명 동일) |
+| 로봇 IP | **172.21.43.12** |
+| initial pose (홈/초기 공용) | **[0, 0, -90, 0, -90, 0] deg** = `[0.0, 0.0, -1.5708, 0.0, -1.5708, 0.0]` rad → `tending_control/config/poses.yaml` 의 `home`/`init` 에 반영 완료 |
+
+**수정된 파일:** `command.txt`, `doc/README.md`(본 문서), `tending_moveit/{launch/scenario1_moveit.launch.py, package.xml, src/scenario1_inspect_moveit.cpp}`(기능적 — moveit 패키지/xacro/srdf 경로), `tending_control/{launch/scenario1_inspect.launch.py, launch/mvp_inspect.launch.py, src/scenario1_inspect.cpp}`(주석/로그 문구), `tending_bringup/{package.xml, CMakeLists.txt}`(주석), `tending_control/config/poses.yaml`(home/init 값).
+
+**아직 자리표시자로 남은 것:** `poses.yaml` 의 `approach`/`inspect`/`retreat`, `scenario1.yaml` 의 `axis_point`/`axis_dir`(엔드밀 축) — TMflow 티칭 또는 `ee_pose_query` 로 추후 확정 필요.
 
 **빌드/실행:** `src/doc/README.md`, `src/command.txt` 참조.
