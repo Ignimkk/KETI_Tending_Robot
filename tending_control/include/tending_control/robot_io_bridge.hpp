@@ -44,6 +44,9 @@ public:
   bool connected();
 
   // 안전 상태(e_stop/robot_error/safetyguard_a 없음). 문제 시 reason 채움.
+  // 노드 파라미터 ignore_safety_flags=true 면 상태 수신 여부만 보고 통과시킨다
+  // (tmr_ros2 가상 로봇이 안전 플래그를 채우지 않아 오프라인 검증이 막히는 문제 회피 —
+  //  실물 로봇에서는 절대 사용 금지).
   bool safety_ok(std::string & reason);
 
   std::vector<double> joint_pos();
@@ -84,6 +87,8 @@ private:
   rclcpp::Client<tm_msgs::srv::SetPositions>::SharedPtr set_positions_cli_;
   rclcpp::Client<tm_msgs::srv::SendScript>::SharedPtr send_script_cli_;
   rclcpp::Client<tm_msgs::srv::SetEvent>::SharedPtr set_event_cli_;
+
+  bool ignore_safety_flags_{false};  // 가상 로봇 검증 전용 (기본 false)
 
   std::mutex mtx_;
   bool have_state_{false};

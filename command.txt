@@ -114,6 +114,46 @@ ros2 service call /set_event tm_msgs/srv/SetEvent "{func: 11, arg0: 0, arg1: 0}"
 
 
 ------------------------------------------------------------------------
+[8] Windows GUI 연동 (tending_bridge) — doc/BRIDGE_INTEGRATION.md
+------------------------------------------------------------------------
+# 기동 순서 (1 → 2 → 3)
+ros2 launch tm_driver tm_bringup.launch.py <TM5_IP>       # 1) 드라이버(실물)
+ros2 launch tending_control mvp_inspect.launch.py         # 2) 검사 오케스트레이션
+ros2 launch tending_bridge bridge.launch.py               # 3) 브리지 (TCP 5901)
+
+# 포트 변경
+ros2 launch tending_bridge bridge.launch.py port:=5901 bind_address:=0.0.0.0
+
+# 방화벽 (최초 1회)
+sudo ufw allow 5901/tcp
+
+# 목 클라이언트 (Windows 없이 프로토콜 검증)
+python3 src/tending_bridge/scripts/mock_ui_client.py                    # 상태 스트림 관찰
+python3 src/tending_bridge/scripts/mock_ui_client.py --goto home
+python3 src/tending_bridge/scripts/mock_ui_client.py --jog 6 --delta 30
+python3 src/tending_bridge/scripts/mock_ui_client.py --run --views 4
+python3 src/tending_bridge/scripts/mock_ui_client.py --run --cancel-after 3
+python3 src/tending_bridge/scripts/mock_ui_client.py --stop
+python3 src/tending_bridge/scripts/mock_ui_client.py --no-ping --run    # 데드맨 확인
+
+# 조그 서비스 직접 호출
+ros2 service call /jog_joint tending_interfaces/srv/JogJoint "{joint: 6, delta: 0.5236, velocity: 0.0}"
+
+# 링크 모드 전환 시: 5891 을 하나만 점유하는지 확인
+ss -tnp | grep 5891
+
+# 포트 점유 프로세스 확인 (Address already in use 시)
+ss -tlnp | grep 5901
+
+# [가상 로봇 검증 전용] tmr_ros2 fake 로봇은 FeedbackState 안전 플래그를 채우지 않아
+#   (e_stop/robot_error/safetyguard 모두 true) safety_ok() 가 항상 실패한다.
+#   ★ 실물 로봇에서는 절대 사용 금지.
+ros2 launch tm5-900_moveit_config tm5-900_run_move_group.launch.py     # robot_ip 없이 = fake
+ros2 launch tending_control mvp_inspect.launch.py ignore_safety_flags:=true
+#   주의: fake 로봇은 /set_positions 를 거부하므로 실제 모션은 실물에서만 검증 가능.
+
+
+------------------------------------------------------------------------
 [!] 실물 배포 전 필수 확인
 ------------------------------------------------------------------------
 - tending_control/config/poses.yaml, scenario1.yaml 의 관절값/축좌표는 자리표시자
@@ -121,6 +161,9 @@ ros2 service call /set_event tm_msgs/srv/SetEvent "{func: 11, arg0: 0, arg1: 0}"
 - 상부 CNC 척과의 충돌 여유 확인. 첫 실행은 반드시 저속으로.
 - 룰베이스(rule)는 충돌회피 없음 → 미검증 좌표는 hybrid(safe_region) 또는 MoveIt 로 먼저 확인.
 - 무하드웨어 검증은 scenario1 dry_run(포즈 미리보기)과 pose_utils gtest 로 수행.
+- ★ ignore_safety_flags 는 반드시 false(기본값) 여야 한다. 가상 로봇 검증 전용 파라미터.
+- ★ Windows GUI 를 TMSVR 직결 모드로 바꾸기 전에 tm_bringup 을 먼저 정지할 것.
+  (tm_driver 와 GUI 가 같은 5891 을 동시에 잡으면 안 됨)
 
 
 

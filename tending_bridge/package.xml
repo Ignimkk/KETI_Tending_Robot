@@ -3,12 +3,22 @@
 <package format="3">
   <name>tending_bridge</name>
   <version>0.1.0</version>
-  <description>TendingSystem(C#) GUI 연동 브리지: 검사 결과/상태/데이터셋 경로 전송. [P2 후순위 스캐폴드]</description>
+  <description>TendingSystem(C#) GUI 연동 브리지: 로봇 상태 스트리밍 + 검사/포즈/조그/비상정지 명령 중계 (TCP JSON 라인 프로토콜, doc/PROTOCOL.md v1)</description>
 
   <maintainer email="kmingi98@gmail.com">mk</maintainer>
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tm_msgs</depend>
+  <depend>tending_interfaces</depend>
+  <depend>nlohmann-json-dev</depend>
+
+  <exec_depend>python3</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

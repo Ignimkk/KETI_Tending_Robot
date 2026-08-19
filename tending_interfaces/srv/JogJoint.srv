@@ -1,0 +1,9 @@
+# 단일 관절 상대 조그 (수동 조작용).
+# 현재 관절값을 읽어 지정 축에만 delta 를 더한 목표로 PTP 이동한다.
+# 검사(run_inspection) 실행 중에는 거부된다.
+uint8 joint             # 1..6 (J1..J6)
+float64 delta           # 현재 각도 기준 상대 증분 (rad)
+float64 velocity        # rad/s, 0 이면 노드 기본값 사용
+---
+bool ok
+string message
