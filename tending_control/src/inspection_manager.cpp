@@ -8,6 +8,7 @@
 // 카메라는 tending_camera 의 capture_image 서비스로 트리거하며, 부착 전에는 stub 이 응답한다.
 // 각 촬영 순간의 관절/TCP/각도/이미지경로를 InspectionSample 로 게시 → tending_data 가 영속화.
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -22,6 +23,7 @@
 #include "tending_control/robot_io_bridge.hpp"
 #include "tending_interfaces/action/run_inspection.hpp"
 #include "tending_interfaces/srv/go_to_named_pose.hpp"
+#include "tending_interfaces/srv/jog_joint.hpp"
 #include "tending_interfaces/srv/capture_image.hpp"
 #include "tending_interfaces/msg/inspection_sample.hpp"
 
@@ -29,6 +31,7 @@ using namespace std::chrono_literals;
 using RunInspection = tending_interfaces::action::RunInspection;
 using GoalHandle = rclcpp_action::ServerGoalHandle<RunInspection>;
 using GoToNamedPose = tending_interfaces::srv::GoToNamedPose;
+using JogJoint = tending_interfaces::srv::JogJoint;
 using CaptureImage = tending_interfaces::srv::CaptureImage;
 using InspectionSample = tending_interfaces::msg::InspectionSample;
 
@@ -68,7 +71,13 @@ public:
 
     goto_srv_ = create_service<GoToNamedPose>(
       "go_to_named_pose",
-      std::bind(&InspectionManager::handle_goto, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&InspectionManager::handle_goto, this, std::placeholders::_1, std::placeholders::_2),
+      rmw_qos_profile_services_default, cb_group_);
+
+    jog_srv_ = create_service<JogJoint>(
+      "jog_joint",
+      std::bind(&InspectionManager::handle_jog, this, std::placeholders::_1, std::placeholders::_2),
+      rmw_qos_profile_services_default, cb_group_);
 
     action_srv_ = rclcpp_action::create_server<RunInspection>(
       this, "run_inspection",
@@ -102,10 +111,65 @@ private:
       res->message = "알 수 없는 포즈: " + req->pose_name;
       return;
     }
+    if (inspecting_.load()) {
+      res->ok = false;
+      res->message = "검사 실행 중에는 포즈 이동을 받지 않습니다.";
+      return;
+    }
+    std::string reason;
+    if (!bridge_->safety_ok(reason)) {
+      res->ok = false;
+      res->message = "안전 점검 실패: " + reason;
+      return;
+    }
     double vel = (req->velocity > 0.0) ? req->velocity : velocity_;
     bool ok = move_to(it->second, vel);
     res->ok = ok;
     res->message = ok ? ("이동 완료: " + req->pose_name) : ("이동 실패: " + req->pose_name);
+  }
+
+  // ---- JogJoint ----
+  // 현재 관절값을 읽어 지정 축에만 delta 를 더한 목표로 PTP 이동. 수동 조작(GUI) 용도.
+  void handle_jog(
+    const std::shared_ptr<JogJoint::Request> req,
+    std::shared_ptr<JogJoint::Response> res)
+  {
+    if (inspecting_.load()) {
+      res->ok = false;
+      res->message = "검사 실행 중에는 조그를 받지 않습니다.";
+      return;
+    }
+    if (req->joint < 1 || req->joint > 6) {
+      res->ok = false;
+      res->message = "관절 번호는 1..6 이어야 합니다: " + std::to_string(req->joint);
+      return;
+    }
+    if (!bridge_->have_state()) {
+      res->ok = false;
+      res->message = "로봇 상태 미수신(tm_driver 확인)";
+      return;
+    }
+    std::string reason;
+    if (!bridge_->safety_ok(reason)) {
+      res->ok = false;
+      res->message = "안전 점검 실패: " + reason;
+      return;
+    }
+
+    auto q = bridge_->joint_pos();
+    if (q.size() < 6) {
+      res->ok = false;
+      res->message = "관절값 수신 이상(size=" + std::to_string(q.size()) + ")";
+      return;
+    }
+    q[req->joint - 1] += req->delta;
+
+    const double vel = (req->velocity > 0.0) ? req->velocity : velocity_;
+    const bool ok = move_to(q, vel);
+    res->ok = ok;
+    res->message = ok ?
+      ("조그 완료: J" + std::to_string(req->joint)) :
+      ("조그 실패: J" + std::to_string(req->joint));
   }
 
   // ---- RunInspection ----
@@ -155,6 +219,14 @@ private:
 
   void execute(const std::shared_ptr<GoalHandle> gh)
   {
+    // 검사 중에는 go_to_named_pose/jog_joint 를 거부한다(모션 충돌 방지).
+    inspecting_.store(true);
+    struct Guard
+    {
+      std::atomic<bool> & f;
+      ~Guard() {f.store(false);}
+    } guard{inspecting_};
+
     const auto goal = gh->get_goal();
     auto result = std::make_shared<RunInspection::Result>();
     result->image_count = 0;
@@ -299,7 +371,9 @@ private:
   rclcpp::Client<CaptureImage>::SharedPtr capture_cli_;
   rclcpp::Publisher<InspectionSample>::SharedPtr sample_pub_;
   rclcpp::Service<GoToNamedPose>::SharedPtr goto_srv_;
+  rclcpp::Service<JogJoint>::SharedPtr jog_srv_;
   rclcpp_action::Server<RunInspection>::SharedPtr action_srv_;
+  std::atomic<bool> inspecting_{false};
 };
 
 int main(int argc, char ** argv)

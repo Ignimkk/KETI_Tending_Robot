@@ -13,6 +13,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -21,12 +22,18 @@ def generate_launch_description():
 
     output_dir = LaunchConfiguration('output_dir')
     use_stub = LaunchConfiguration('use_stub')
+    ignore_safety_flags = LaunchConfiguration('ignore_safety_flags')
 
     return LaunchDescription([
         DeclareLaunchArgument('output_dir', default_value='/tmp/tending_dataset',
                               description='이미지/메타 저장 루트'),
         DeclareLaunchArgument('use_stub', default_value='true',
                               description='카메라 stub 모드(카메라 부착 전 true)'),
+        # tmr_ros2 가상 로봇은 FeedbackState 의 안전 플래그를 채우지 않아
+        # (e_stop/robot_error/safetyguard 가 모두 true) safety_ok() 가 항상 실패한다.
+        # 오프라인 검증 시에만 true 로 두고, 실물 로봇에서는 반드시 false 를 유지할 것.
+        DeclareLaunchArgument('ignore_safety_flags', default_value='false',
+                              description='안전 플래그 무시 (가상 로봇 검증 전용, 실물 금지)'),
         Node(
             package='tending_camera', executable='camera_node', name='camera_node',
             output='screen',
@@ -40,6 +47,9 @@ def generate_launch_description():
         Node(
             package='tending_control', executable='inspection_manager', name='inspection_manager',
             output='screen',
-            parameters=[poses_yaml],
+            parameters=[
+                poses_yaml,
+                {'ignore_safety_flags': ParameterValue(ignore_safety_flags, value_type=bool)},
+            ],
         ),
     ])

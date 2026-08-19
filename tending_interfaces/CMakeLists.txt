@@ -23,6 +23,7 @@ set(msg_files
 set(srv_files
   "srv/CaptureImage.srv"
   "srv/GoToNamedPose.srv"
+  "srv/JogJoint.srv"
 )
 set(action_files
   "action/RunInspection.action"

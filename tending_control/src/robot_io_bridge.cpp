@@ -14,6 +14,20 @@ namespace tending_control
 RobotIoBridge::RobotIoBridge(rclcpp::Node * node, rclcpp::CallbackGroup::SharedPtr cb_group)
 : node_(node)
 {
+  // tmr_ros2 의 가상(fake) 로봇은 FeedbackState 의 안전 플래그를 채우지 않아
+  // e_stop/robot_error/safetyguard_a 가 모두 true, error_code 가 쓰레기값으로 올라온다.
+  // 그 결과 safety_ok() 가 항상 실패해 오프라인 검증이 불가능하므로,
+  // 시뮬레이션 전용 탈출구를 옵트인으로 제공한다. 실물에서는 절대 켜지 말 것.
+  ignore_safety_flags_ = node_->has_parameter("ignore_safety_flags") ?
+    node_->get_parameter("ignore_safety_flags").as_bool() :
+    node_->declare_parameter<bool>("ignore_safety_flags", false);
+  if (ignore_safety_flags_) {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "ignore_safety_flags=true — 안전 플래그(e_stop/safetyguard/robot_error/연결)를 무시합니다. "
+      "가상 로봇 검증 전용입니다. 실물 로봇에서는 절대 사용하지 마십시오.");
+  }
+
   rclcpp::SubscriptionOptions sub_opts;
   sub_opts.callback_group = cb_group;
 
@@ -89,6 +103,8 @@ bool RobotIoBridge::safety_ok(std::string & reason)
 {
   std::lock_guard<std::mutex> lk(mtx_);
   if (!have_state_) { reason = "로봇 상태 미수신"; return false; }
+  // 상태 미수신은 시뮬에서도 실제 문제이므로 위 검사는 항상 유효하게 둔다.
+  if (ignore_safety_flags_) { return true; }
   if (e_stop_) { reason = "비상정지(e_stop) 활성"; return false; }
   if (safetyguard_) { reason = "세이프가드(safetyguard_a) 트리거"; return false; }
   if (robot_error_) { reason = "로봇 에러(code=" + std::to_string(error_code_) + ")"; return false; }

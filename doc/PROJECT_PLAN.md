@@ -224,7 +224,51 @@
 - 파일: `tending_bringup/doc/` 평가 리포트(본 문서에 통합).
 - 완료기준: 최종 권고 구성 도출. 리스크: 지표 정량화 기준 합의.
 
-### 단계 16 — TendingSystem(C#) 데이터 브리지 (`tending_bridge`)  ⏳P2(후순위)
+### 단계 16 — TendingSystem(C#) 브리지 (`tending_bridge`)  ✅ 구현 완료 (2026-08-06)
+
+**로봇 통신 부분 구현 완료.** 카메라/이미지 전송은 미구현(§16.1).
+
+- **와이어 프로토콜:** `tending_bridge/doc/PROTOCOL.md` **v1** — 개행 구분 JSON 라인 TCP.
+  Ubuntu 가 서버(`0.0.0.0:5901`), Windows GUI 가 클라이언트. 단위는 **deg/mm**(UI 네이티브)로 보내고 브리지가 rad/m 변환.
+- **소유권 결정:** ROS2(`tm_driver`)가 로봇을 단독 소유하고 Windows GUI 는 HMI. 단,
+  ROS2 미기동 시를 대비해 GUI 에서 **TMSVR 5891 직결로 런타임 전환**할 수 있다(두 링크는 상호배타).
+- **메시지:** ROS→GUI `state`(10Hz, 플래그 변화 시 즉시)/`event`/`ack`/`result`,
+  GUI→ROS `run_inspection`/`cancel`/`goto_pose`/`jog`/`stop`/`ping`.
+- **안전:** 모션 명령 1개만 in-flight(BUSY 거부), 검사 중 GUI 무음 3초 시 데드맨 정지,
+  e-stop/safeguard/드라이버 끊김 시 이벤트 발행 + 진행 중 작업 중단.
+  `stop` 만 `tm_msgs/SetEvent(STOP)` 직결(지연 최소화), 나머지는 전부 `inspection_manager` 경유.
+- **신규 파일:** `tending_bridge/{src/tending_bridge_node.cpp, src/json_line_server.cpp,
+  include/tending_bridge/json_line_server.hpp, config/bridge.yaml, launch/bridge.launch.py,
+  scripts/mock_ui_client.py, doc/PROTOCOL.md}`
+- **`tending_interfaces` 추가:** `srv/JogJoint.srv` (수동 조그) → `inspection_manager` 에 핸들러 구현.
+  검사 goal 실행 중에는 조그/포즈이동을 거부한다(`inspecting_` 플래그).
+- **`robot_io_bridge` 추가 파라미터:** `ignore_safety_flags`(기본 false).
+  tmr_ros2 **가상 로봇이 FeedbackState 안전 플래그를 채우지 않아**(e_stop/robot_error/safetyguard 모두 true,
+  error_code 쓰레기값) `safety_ok()` 가 항상 실패 → 오프라인 검증이 불가능해 옵트인 탈출구를 뒀다.
+  `mvp_inspect.launch.py ignore_safety_flags:=true` 로만 켜고 **실물에서는 절대 사용 금지.**
+
+**검증 완료(2026-08-06, 가상 로봇 + 실제 C# 클라이언트 코드):**
+- 프로토콜 왕복: 연결 직후 스냅샷 `state`, 10Hz 스트림, 라인 프레이밍, `id` 매칭, 1초 ping/ack ✓
+- 명령 라우팅: GUI → 브리지 → `inspection_manager`(액션/서비스) → `robot_io_bridge` → `/set_positions` ✓
+- 거부 경로: `SERVICE_UNAVAILABLE`, `BAD_ARGS`, **`BUSY` 상호배타**(3개 동시 전송 → 1 수락 / 2 거부) ✓
+- 안전: `safety_ok` 게이트, `stop` → `SetEvent` 미준비 시 에러 이벤트 ✓
+- C# 측: `RosLineClient`/`RosProtocol`/`RosBridgeClient`/`RosRobotAdapter` 컴파일 + 실 브리지 접속 ✓
+  어댑터가 `RosState` → `RobotStatus` 매핑, 연결 끊김 시 `connected=false` 처리 ✓
+
+**미검증 (실물 TM5 필요):**
+- **실제 로봇 모션.** tmr_ros2 **가상 로봇은 `/set_positions` 를 거부**하므로(FollowJointTrajectory
+  경로만 지원) 브리지를 통한 이동은 항상 `ABORTED('init 이동 실패')` 로 끝난다. 이는 브리지가 아니라
+  fake 드라이버의 한계이며, 명령이 드라이버까지 도달하는 것은 확인되었다.
+- 데드맨 자동 정지(활성 goal 이 유지되어야 하는데 가상 로봇에서는 즉시 실패)
+- 실물 e-stop 주입, 링크 모드 전환 시 5891 동시 점유 부재 확인
+
+#### 16.1 카메라 확장 (미구현 · 예약)
+`state` 에 `camera` 블록, `event` 에 `code:"CAPTURE"` + `image_path` 추가.
+**이미지 바이트는 5901 소켓으로 보내지 않는다** — 데이터셋 폴더를 SMB/NFS 공유하고 경로만 전달(1차 권장).
+
+---
+
+### 단계 16 (원안) — TendingSystem(C#) 데이터 브리지  ⏳P2(후순위)
 - 목표: 검사 결과·상태·데이터셋 경로를 C# 기반 `TendingSystem` GUI로 전송(그리고 필요 시 GUI→검사 시작/중지 명령 수신).
 - 세부: (a) **경계 노드** `tending_bridge`가 `RunInspection` 결과·`InspectionSample`·로봇/검사 상태를 구독 → 외부 전송. (b) 전송 방식 후보: **rosbridge_suite(websocket+JSON, C#은 ROS# 라이브러리)** 또는 **경량 TCP/JSON 소켓 서버**(C# 측 커스텀 클라이언트). 프로젝트 배포 단순성 기준으로 택1 — 1차 권장은 TCP/JSON(의존성 최소, C# 연동 용이). (c) 스키마: `machine_id, scenario, dataset_path, image_count, per-view {index, angle, tcp_pose, joint_pos, stamp, image_path}, 검사 결과/에러`.
 - 파일: `tending_bridge/src/tending_bridge.cpp`, `tending_bridge/config/bridge.yaml`(host/port/스키마 버전), `tending_interfaces` 재사용.

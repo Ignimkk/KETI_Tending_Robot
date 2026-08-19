@@ -1,0 +1,22 @@
+# tending_bridge 설정 — doc/PROTOCOL.md §7
+tending_bridge:
+  ros__parameters:
+    # TCP 서버 (Windows GUI 가 클라이언트로 접속)
+    bind_address: "0.0.0.0"
+    port: 5901
+
+    # state 메시지 주기. 플래그 변화 시에는 주기와 무관하게 즉시 추가 송신한다.
+    state_rate_hz: 10.0
+
+    # 데드맨: 검사 실행 중 GUI 로부터 이 시간 동안 아무 메시지도 없으면 정지 (PROTOCOL §5.3).
+    # Windows 는 1초마다 ping 을 보내므로 3초면 2회 유실까지 견딘다.
+    client_timeout_ms: 3000
+
+    # 동시 접속 상한 (UI 1 + 디버그 1)
+    max_clients: 2
+
+    # 봉투의 v 값. 프로토콜을 바꾸면 올리고 양쪽을 함께 수정할 것.
+    schema_version: 1
+
+    # feedback_states 가 이 시간 이상 끊기면 link.driver=false + DRIVER_LOST 이벤트.
+    driver_timeout_ms: 2000
